@@ -15,15 +15,16 @@ VoiceAnalyzer is an AI-powered Android application built with **Kotlin** and **J
 
 ## 📱 Screenshots
 
-<p align="center">
-  <img src="ScreenShot/Recording_Screen.jpeg" width="250" />
-  <img src="ScreenShot/Audio_player.jpeg" width="250" />
-</p>
-<p align="center">
-  <img src="ScreenShot/Analyzer_Screen1.jpeg" width="250" />
-  <img src="ScreenShot/Analyzer_Screen2.jpeg" width="250" />
-</p>
----
+<table>
+  <tr>
+    <td><img src="ScreenShot/Recording_Screen.jpeg" width="250" /></td>
+    <td><img src="ScreenShot/Audio_player.jpeg" width="250" /></td>
+  </tr>
+  <tr>
+    <td><img src="ScreenShot/Analyzer_Screen1.jpeg" width="250" /></td>
+    <td><img src="ScreenShot/Analyzer_Screen2.jpeg" width="250" /></td>
+  </tr>
+</table>
 
 ## ✨ Features
 
