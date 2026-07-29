@@ -13,16 +13,16 @@ VoiceAnalyzer is an AI-powered Android application built with **Kotlin** and **J
 - 📝 Automatic speech-to-text transcription
 - 💾 Offline history with Room database
 
-
 ## 📱 Screenshots
 
 <p align="center">
-  <img src="ScreenShot/Recording_Screen.jpeg" width="200" />
-  <img src="ScreenShot/Audio_player.jpeg" width="200" />
-  <img src="ScreenShot/Analyzer_Screen1.jpeg" width="200" />
-  <img src="ScreenShot/Analyzer_Screen2.jpeg" width="200" />
+  <img src="ScreenShot/Recording_Screen.jpeg" width="250" />
+  <img src="ScreenShot/Audio_player.jpeg" width="250" />
 </p>
-
+<p align="center">
+  <img src="ScreenShot/Analyzer_Screen1.jpeg" width="250" />
+  <img src="ScreenShot/Analyzer_Screen2.jpeg" width="250" />
+</p>
 ---
 
 ## ✨ Features
@@ -43,7 +43,8 @@ Sends recorded audio to a cloud microservice (`/analyze` endpoint) to generate a
 *   **Voice Overview Radar Chart:** Multi-dimensional visualization of **Clarity, Fluency, Grammar, Confidence, and Tone** (built with `MPAndroidChart`).
 *   **Emotional Tone Classification:** Analyzes voice characteristics to classify tone (e.g., *Confident, Enthusiastic, Hesitant, Monotone, Nervous, Neutral*) and provides suggestions for improvement.
 *   **Speech Metrics Breakdown:** Measures pace (Words Per Minute), counts filler words (*um, uh, like...*), and tracks silent pauses.
-*   **Audio Transcription:** Automated Speech-to-Text transcription card with a one-tap copy button.
+*   **Speech-to-Text:** Whisper (small) model, self-hosted on Google Cloud for audio transcription.
+
 
 ### 4. 🗄️ Offline Cache & History
 *   **Room Database integration:** Automatically saves analysis results locally.
@@ -59,6 +60,7 @@ VoiceAnalyzer is engineered following modern Android architecture recommendation
 *   **Network Client:** Retrofit 2 + Gson Converter + OkHttp (Supports multipart audio uploads and long-running analysis requests).
 *   **Data Flow:** Kotlin Coroutines & StateFlow (Ensures reactive UI updates).
 *   **Charts & Visuals:** `MPAndroidChart` (Interoperable Radar Chart) + Custom Drawing (`Canvas`).
+*   **Speech-to-Text:** OpenAI Whisper (small model) for audio transcription.
 
 ---
 
