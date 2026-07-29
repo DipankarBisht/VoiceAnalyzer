@@ -1,4 +1,4 @@
-package com.example.voiceanalyzer
+package com.example.voiceanalyzer.ui.Screens
 
 import android.Manifest
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -7,7 +7,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,27 +24,37 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.voiceanalyzer.Visualizer
+import com.example.voiceanalyzer.ViewModel.RecorderViewModel
+import com.example.voiceanalyzer.ui.theme.ActionButton
+import com.example.voiceanalyzer.ui.theme.AppBackground
+import com.example.voiceanalyzer.ui.theme.BorderAccent
+import com.example.voiceanalyzer.ui.theme.PrimaryButton
+import com.example.voiceanalyzer.ui.theme.RecordingActive
+import com.example.voiceanalyzer.ui.theme.SurfaceCard
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun RecorderScreen(rcManger: VoiceRecdManager) {
+fun RecorderScreen(viewModel : RecorderViewModel) {
     val context = LocalContext.current
     val permissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
-    var isRecording by remember { mutableStateOf(false) }
-    var isPlay by remember { mutableStateOf(false) }
-    val amplitudes by rcManger.am.collectAsState()
-    val timerValue = rcManger.rectime.collectAsState()
+
+
+    val isRecording by viewModel.isRecording.collectAsState()
+    val isPlay by viewModel.isplay.collectAsState()
+    val amplitudes by viewModel.amplitude.collectAsState()
+    val timerValue by viewModel.recordingTime.collectAsState()
     // Pulse animation setup
+
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1.0f,
@@ -66,21 +78,22 @@ fun RecorderScreen(rcManger: VoiceRecdManager) {
 
     Column(modifier = Modifier
         .fillMaxSize()
-        .padding(32.dp),
+        .background(color = AppBackground ),
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(46.dp))
 
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                containerColor = SurfaceCard
             ),
             shape = RoundedCornerShape(24.dp),
+            border = BorderStroke(1.dp, BorderAccent),
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = time_converter(timerValue.value),
+                text = time_converter(timerValue),
                 fontSize = 54.sp,
                 fontWeight = FontWeight.Light,
                 fontFamily = FontFamily.Monospace,
@@ -88,15 +101,21 @@ fun RecorderScreen(rcManger: VoiceRecdManager) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        Spacer(modifier = Modifier.height(80.dp))
 // Wrap the visualizer in a weight-based Box inside your Column:
         Box(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp)
+                .clip(RoundedCornerShape(45.dp))
+                .border(width = 5.dp, color = BorderAccent,shape = RoundedCornerShape(45.dp))
+                ,
             contentAlignment = Alignment.Center
         ) {
             Visualizer(amplitudes = amplitudes)
         }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         Row(
@@ -104,18 +123,17 @@ fun RecorderScreen(rcManger: VoiceRecdManager) {
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
         ) {
-            // 1. DISCARD BUTTON (Button 3) - Small, subtle grey background
+            // 1. DISCARD BUTTON
             if (isRecording) {
                 IconButton(
                     onClick = {
-                        rcManger.dismiss(context)
-                        isRecording = false
-                        isPlay = false
+                        viewModel.discard_recording(context)
+
                     },
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(color =ActionButton)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.DeleteOutline,
@@ -127,7 +145,7 @@ fun RecorderScreen(rcManger: VoiceRecdManager) {
                 Spacer(modifier = Modifier.width(28.dp))
             }
 
-            // 2. MAIN RECORD BUTTON (Button 2) - Large, primary colored
+            // 2. MAIN RECORD BUTTON
             Box(contentAlignment = Alignment.Center,modifier = Modifier.size(124.dp)) {
                 // Glowing Ring (pulsing animation)
                 if (isRecording) {
@@ -135,7 +153,7 @@ fun RecorderScreen(rcManger: VoiceRecdManager) {
                         modifier = Modifier
                             .size(88.dp * pulseScale) // Animating size
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.error.copy(alpha = pulseAlpha))
+                            .background(RecordingActive.copy(alpha = pulseAlpha))
                     )
                 }
 
@@ -145,13 +163,11 @@ fun RecorderScreen(rcManger: VoiceRecdManager) {
                             permissionState.launchPermissionRequest()
                         } else {
                             if (!isRecording) {
-                                rcManger.strtrecod(context)
-                                isRecording = true
-                                isPlay = true
+                                viewModel.start_recording(context)
+
                             } else {
-                                rcManger.stoprecod(context)
-                                isRecording = false
-                                isPlay = false
+                                viewModel.stop_recording(context)
+
                             }
                         }
                     },
@@ -159,14 +175,14 @@ fun RecorderScreen(rcManger: VoiceRecdManager) {
                         .size(72.dp)
                         .clip(CircleShape)
                         .background(
-                            if (isRecording) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.primary
+                            if (isRecording) Color(0xFFFF2D55)
+                            else Color(0xFF6C63FF)
                         )
                 ) {
                     Icon(
                         imageVector = if (!isRecording) Icons.Rounded.Mic else Icons.Rounded.Stop,
                         contentDescription = "Record",
-                        tint = if (isRecording) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary,
+                        tint = if (isRecording) Color.Black  else Color.Black,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -178,11 +194,10 @@ fun RecorderScreen(rcManger: VoiceRecdManager) {
                 IconButton(
                     onClick = {
                         if (isPlay) {
-                            rcManger.paus()
-                            isPlay = false
-                        } else {
-                            rcManger.resme()
-                            isPlay = true
+                            viewModel.pause_recording()
+                        }
+                        else {
+                            viewModel.resume_recording()
                         }
                     },
                     modifier = Modifier

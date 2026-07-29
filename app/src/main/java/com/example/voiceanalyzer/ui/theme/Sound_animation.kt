@@ -11,6 +11,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.voiceanalyzer.ui.theme.VisualizerWaveBlue
+import com.example.voiceanalyzer.ui.theme.VisualizerWaveCyan
+import com.example.voiceanalyzer.ui.theme.VisualizerWavePurple
 
 @Composable
 fun Visualizer(
@@ -35,7 +38,7 @@ fun Visualizer(
         }
 
         val brush = Brush.linearGradient(
-            colors = listOf(Color(0xFF00FF87), Color(0xFF60EFFF)),
+            colors = listOf(VisualizerWaveCyan, VisualizerWaveBlue, VisualizerWavePurple),
             start = Offset(0f, height / 2f),
             end = Offset(width, height / 2f)
         )

@@ -1,15 +1,13 @@
-package com.example.voiceanalyzer
+package com.example.voiceanalyzer.Data.Media
 
 import android.content.ContentValues
 import android.content.Context
 import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Environment
-import android.os.Parcel
 import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import android.widget.Toast
-import androidx.compose.material3.TopAppBar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,7 +15,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.newCoroutineContext
 
 class VoiceRecdManager(contex: Context) {
 
@@ -25,7 +22,7 @@ class VoiceRecdManager(contex: Context) {
     lateinit var pdff : ParcelFileDescriptor
     lateinit var recoriguri : Uri
     private var stime =0L
-    var timeerjob:Job?=null
+    var timeerjob: Job?=null
 
     var _rectime = MutableStateFlow(0L)
     var  rectime : StateFlow<Long> = _rectime
@@ -36,7 +33,7 @@ class VoiceRecdManager(contex: Context) {
 
 
     // Add these to VoiceRecdManager
-    private val _amplitudes = MutableStateFlow<List<Float>>(List(40) { 0f })
+    private val _amplitudes = MutableStateFlow<List<Float>>(List(80) { 0f })
     val am: StateFlow<List<Float>> = _amplitudes
 
 // Add this inside strttime(), in the while(true) loop:
@@ -44,19 +41,11 @@ class VoiceRecdManager(contex: Context) {
 
 
 
-
-
-
-
-
-
-
-
-
-    fun createRecodUri(contex: Context): Uri{
+    fun createRecodUri(contex: Context): Uri {
         val values = ContentValues().apply {
 
-            put(MediaStore.Audio.Media.DISPLAY_NAME,
+            put(
+                MediaStore.Audio.Media.DISPLAY_NAME,
                 "Audio_${System.currentTimeMillis()}.m4a")
             put(MediaStore.Audio.Media.MIME_TYPE,"audio/mp4")
             put(MediaStore.Audio.Media.RELATIVE_PATH, Environment.DIRECTORY_MUSIC + "/VoiceRecorder")
@@ -78,7 +67,7 @@ class VoiceRecdManager(contex: Context) {
                     val raw = getVisualizerAmplitude(true)
                     val normalized = (raw.toFloat() / 32767f).coerceIn(0f, 1f)
                     val current = _amplitudes.value.toMutableList()
-                    if (current.size >= 40) current.removeAt(0)
+                    if (current.size >= 80) current.removeAt(0)
                     current.add(normalized)
                     _amplitudes.value = current
                 }
@@ -128,6 +117,8 @@ class VoiceRecdManager(contex: Context) {
          contex.contentResolver.update(
             recoriguri,values,null,null
         )
+        _rectime.value= 0L
+        _amplitudes.value = List(80) { 0f }
         Toast.makeText(contex,"THE Audio has been stored ", Toast.LENGTH_LONG).show()
     }
 

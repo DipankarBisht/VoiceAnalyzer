@@ -1,4 +1,4 @@
-package com.example.voiceanalyzer
+package com.example.voiceanalyzer.Data.Media
 
 import android.net.Uri
 
@@ -8,5 +8,5 @@ data class AudioFile(
     val durationMs: Long,
     val sizeInBytes: Long,
     val dateAdded: Long,
-    val filePath: String = ""  // ← add this
+    val filePath: String = ""  
 )

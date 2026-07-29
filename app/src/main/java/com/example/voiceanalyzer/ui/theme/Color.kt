@@ -2,15 +2,21 @@ package com.example.voiceanalyzer.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// --- Main Surfaces ---
+val AppBackground = Color(0xFF090D16)       // Deep Cyber Navy
+val SurfaceCard = Color(0xFF101726)         // Slate Navy Container
+val BorderAccent = Color(0xFF1E2B42)        // Cool Steel Border
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// --- Typography ---
+val TextPrimary = Color(0xFFE8F1F5)         // Ice White Primary Text
+val TextSecondary = Color(0xFF7A8B9E)       // Cool Muted Grey
 
-val ColorText = Color(0xFF262222)
-val PrimaryNeon = Color(0xFF9D4EDD)
-val SecondaryNeon = Color(0xFFE01E5A)
-val AccentCyan = Color(0xFF00F5D4)
+// --- Actions & Buttons ---
+val PrimaryButton = Color(0xFF00E676)       // Electric Mint Accent
+val ActionButton = Color(0xFF162338)        // Dark Slate Inactive Button
+val RecordingActive = Color(0xFFFF0055)     // Neon Crimson Recording Indicator
+
+// --- Gradient Components (Visualizer / Waveforms) ---
+val VisualizerWaveCyan = Color(0xFF00E5FF)  // Bright Cyan
+val VisualizerWaveBlue = Color(0xFF0088FF)  // Deep Azure
+val VisualizerWavePurple = Color(0xFF7000FF) // Electric Violet

@@ -1,17 +1,14 @@
-package com.example.voiceanalyzer
+package com.example.voiceanalyzer.ui.theme
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -20,6 +17,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.ui.graphics.Color
+import com.example.voiceanalyzer.Data.Media.AudioFile
+import com.example.voiceanalyzer.Data.Media.PlaybackState
+import com.example.voiceanalyzer.ui.Screens.formatTime
 
 
 @Composable
@@ -44,10 +45,10 @@ fun MiniPlayer(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp) // Margin so it floats
             .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 1f)) // Translucent background
+            .background(SurfaceCard) // Translucent background
             .border(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                color = BorderAccent,
                 shape = RoundedCornerShape(24.dp)
             )
             .padding(16.dp)
@@ -88,7 +89,12 @@ fun MiniPlayer(
                     isDragging = false
                     onSeek(sliderPos.toInt())
                 },
-                valueRange = 0f..totalDuration.toFloat()
+                valueRange = 0f..totalDuration.toFloat(),
+                colors = SliderDefaults.colors(
+                    thumbColor = PrimaryButton,
+                    activeTrackColor = PrimaryButton,
+                    inactiveTrackColor = BorderAccent
+                )
             )
 
             Row(

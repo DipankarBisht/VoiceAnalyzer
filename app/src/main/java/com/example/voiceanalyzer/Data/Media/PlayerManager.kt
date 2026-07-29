@@ -1,4 +1,4 @@
-package com.example.voiceanalyzer
+package com.example.voiceanalyzer.Data.Media
 
 import android.content.Context
 import android.media.MediaPlayer
@@ -26,7 +26,7 @@ class PlayerManager(private val context: Context) {
 
     private val _playbackState = MutableStateFlow(PlaybackState())
     val playbackState: StateFlow<PlaybackState> = _playbackState
-
+    
     fun play(uri: Uri) {
         stop()
         _currentUri.value = uri
@@ -73,6 +73,7 @@ class PlayerManager(private val context: Context) {
 
     private fun startProgress() {
         stopProgress()
+        
         progressJob = scope.launch {
             while (isActive) {
                 player?.let {

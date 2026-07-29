@@ -1,4 +1,4 @@
-package com.example.voiceanalyzer
+package com.example.voiceanalyzer.ui.Screens
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -15,15 +15,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.asRequestBody
-import com.google.gson.Gson
-import java.io.File
-import java.util.concurrent.TimeUnit
 import android.graphics.Color as AndroidColor
 import android.widget.Toast
 import androidx.compose.ui.viewinterop.AndroidView
@@ -49,173 +40,57 @@ import androidx.compose.material.icons.filled.ContentCopy
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.foundation.lazy.items
-
-// ─── Data Classes ───────────────────────────────────
-data class AnalysisResult(
-    val overall_score: Float,
-    val overall_grade: String,
-    val transcription: String,
-    val duration_seconds: Float,
-    val clarity: ScoreDetail,
-    val fluency: FluencyDetail,
-    val grammar: GrammarDetail,
-    val confidence: ConfidenceDetail,
-    val emotional_tone: EmotionalTone
-)
-
-data class ScoreDetail(
-    val score: Float,
-    val grade: String,
-    val feedback: String
-)
-
-data class FluencyDetail(
-    val score: Float,
-    val grade: String,
-    val wpm: Float,
-    val filler_count: Int,
-    val pause_count: Int,
-    val feedback: String
-)
-
-data class GrammarDetail(
-    val score: Float,
-    val grade: String,
-    val error_count: Int,
-    val feedback: String
-)
-
-data class ConfidenceDetail(
-    val score: Float,
-    val grade: String,
-    val pitch_stability: Float,
-    val silence_score: Float,
-    val feedback: String
-)
-
-data class EmotionalTone(
-    val tone: String,
-    val confidence: Float,
-    val suggestion: String
-)
-
-// ─── API Call ────────────────────────────────────────
-suspend fun analyzeAudio(audioPath: String): AnalysisResult? {
-    return withContext(Dispatchers.IO) {
-        try {
-            android.util.Log.d("ANALYZER", "Starting analysis for: $audioPath")
-
-            val file = File(audioPath)
-
-            // Check if file exists
-            android.util.Log.d("ANALYZER", "File exists: ${file.exists()}")
-            android.util.Log.d("ANALYZER", "File size: ${file.length()}")
-
-            if (!file.exists()) {
-                android.util.Log.e("ANALYZER", "FILE NOT FOUND!")
-                return@withContext null
-            }
-
-            val client = OkHttpClient.Builder()
-                .callTimeout(300, TimeUnit.SECONDS)
-                .readTimeout(300, TimeUnit.SECONDS)
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .writeTimeout(120, TimeUnit.SECONDS)
-                .build()
-
-            val requestBody = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart(
-                    "file", file.name,
-                    file.asRequestBody("audio/*".toMediaType())
-                ).build()
-
-            val request = Request.Builder()
-                .url("https://speech-analyzer-854674223155.asia-south1.run.app/analyze")
-                .post(requestBody)
-                .build()
-
-            android.util.Log.d("ANALYZER", "Sending POST request...")
-            val response = client.newCall(request).execute()
-            android.util.Log.d("ANALYZER", "Response code: ${response.code}")
-
-            val body = response.body?.string()
-            android.util.Log.d("ANALYZER", "Response body: $body")
-
-            Gson().fromJson(body, AnalysisResult::class.java)
-        } catch (e: Exception) {
-            android.util.Log.e("ANALYZER", "Error: ${e.message}")
-            e.printStackTrace()
-            null
-        }
-    }
-}
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.example.voiceanalyzer.Data.Local.Analysis_data
+import com.example.voiceanalyzer.ViewModel.AnalyzerViewModel
+import com.example.voiceanalyzer.Data.Local.*
+import com.example.voiceanalyzer.ui.theme.AppBackground
+import com.example.voiceanalyzer.ui.theme.BorderAccent
+import com.example.voiceanalyzer.ui.theme.PrimaryButton
+import com.example.voiceanalyzer.ui.theme.SurfaceCard
+import com.example.voiceanalyzer.ui.theme.TextPrimary
+import com.example.voiceanalyzer.ui.theme.TextSecondary
+import com.example.voiceanalyzer.ui.theme.VisualizerWaveCyan
 
 // ─── Main Screen ─────────────────────────────────────
 @Composable
-fun AnalyzerScreen(audioFilePath: String? = null) {
-    val context = LocalContext.current
-
-    var result by remember { mutableStateOf<AnalysisResult?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMsg by remember { mutableStateOf<String?>(null) }
-    var history by remember { mutableStateOf(HistoryManager.getHistory(context)) }
-    var selectedHistoryResult by remember { mutableStateOf<AnalysisResult?>(null) }
-    val scope = rememberCoroutineScope()
+fun AnalyzerScreen(audioFilePath: String? = null,
+                   viewModel: AnalyzerViewModel
+) {
+    val result by viewModel.result.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMsg by viewModel.errorMsg.collectAsState()
+    val history by viewModel.history.collectAsState()
+    val selectedHistoryResult by viewModel.selectedHistoryResult.collectAsState()
 
     LaunchedEffect(audioFilePath) {
         if (audioFilePath != null) {
-            isLoading = true
-            errorMsg = null
-            selectedHistoryResult = null
-            val analysisResult = analyzeAudio(audioFilePath)
-            if (analysisResult == null) {
-                errorMsg = "Analysis failed. Check server connection."
-            } else {
-                result = analysisResult
-                val fileName = audioFilePath.substringAfterLast("/")
-                HistoryManager.saveAnalysis(context, fileName, analysisResult)
-                history = HistoryManager.getHistory(context)
-            }
-            isLoading = false
+            viewModel.analysis_audiofile(audioFilePath)
         }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F0F1A))
+            .background(color = AppBackground )
     ) {
         when {
             isLoading -> LoadingView()
             errorMsg != null -> ErrorView(errorMsg!!) {
-                scope.launch {
-                    if (audioFilePath != null) {
-                        isLoading = true
-                        errorMsg = null
-                        val analysisResult = analyzeAudio(audioFilePath)
-                        if (analysisResult == null) errorMsg = "Analysis failed."
-                        else {
-                            result = analysisResult
-                            val fileName = audioFilePath.substringAfterLast("/")
-                            HistoryManager.saveAnalysis(context, fileName, analysisResult)
-                            history = HistoryManager.getHistory(context)
-                        }
-                        isLoading = false
-                    }
+                if (audioFilePath != null) {
+                    viewModel.analysis_audiofile( audioFilePath)
+
                 }
             }
-            result != null -> ResultsViewWithBack(result!!) { result = null }
+            result != null -> ResultsViewWithBack(result!!) { viewModel.clearResult() }
             selectedHistoryResult != null -> ResultsViewWithBack(selectedHistoryResult!!) {
-                selectedHistoryResult = null
+                viewModel.clearSelectedHistoryResult()
             }
             else -> HistoryListView(
                 history = history,
-                onItemClick = { selectedHistoryResult = it.result },
-                onDeleteClick = { item ->
-                    HistoryManager.deleteItem(context, item.timestamp)
-                    history = HistoryManager.getHistory(context)
-                }
+                onItemClick = { viewModel.selectHistoryItem(it) },
+                onDeleteClick = { viewModel.deleteHistoryItem(it) }
             )
         }
     }
@@ -239,21 +114,21 @@ fun LoadingView() {
         verticalArrangement = Arrangement.Center
     ) {
         CircularProgressIndicator(
-            color = Color(0xFF6C63FF),
+            color = PrimaryButton,
             modifier = Modifier.size(60.dp),
             strokeWidth = 4.dp
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
             "Analyzing your voice...",
-            color = Color.White.copy(alpha = alpha),
+            color = TextPrimary.copy(alpha = alpha),
             fontSize = 18.sp,
             fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             "This may take 1-2 minutes",
-            color = Color.Gray,
+            color = TextSecondary,
             fontSize = 14.sp
         )
     }
@@ -270,20 +145,20 @@ fun EmptyView() {
         Icon(
             imageVector = Icons.Default.Mic,
             contentDescription = null,
-            tint = Color.Gray,
+            tint = TextSecondary,
             modifier = Modifier.size(64.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             "No Audio Selected",
-            color = Color.White,
+            color = TextPrimary,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             "Record or select an audio file to analyze",
-            color = Color.Gray,
+            color = TextSecondary,
             fontSize = 14.sp
         )
     }
@@ -309,7 +184,7 @@ fun ErrorView(message: String, onRetry: () -> Unit) {
         Button(
             onClick = onRetry,
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF6C63FF)
+                containerColor = PrimaryButton
             )
         ) {
             Text("Retry")
@@ -319,7 +194,7 @@ fun ErrorView(message: String, onRetry: () -> Unit) {
 
 // ─── Results View ────────────────────────────────────
 @Composable
-fun ResultsView(result: AnalysisResult) {
+fun ResultsView(result: Analysis_data) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -351,7 +226,7 @@ fun ResultsView(result: AnalysisResult) {
         // Detailed Analysis header
         Text(
             "Detailed Analysis",
-            color = Color.White,
+            color = TextPrimary,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold
         )
@@ -370,7 +245,7 @@ fun ResultsView(result: AnalysisResult) {
         Spacer(modifier = Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(modifier = Modifier.weight(1f)) {
-                GridMetricCard("Grammar", Icons.Default.MenuBook, result.grammar.score, result.grammar.feedback, Color(0xFFFF9800))
+                GridMetricCard("Grammar(Not Working )", Icons.Default.MenuBook, result.grammar.score, result.grammar.feedback, Color(0xFFFF9800))
             }
             Spacer(modifier = Modifier.width(12.dp))
             Box(modifier = Modifier.weight(1f)) {
@@ -402,7 +277,7 @@ fun OverallScoreCircular(score: Float, grade: String, duration: Float) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF16152B)),
+        colors = CardDefaults.cardColors(containerColor = SurfaceCard),
         shape = RoundedCornerShape(24.dp),
         border = BorderStroke(1.dp, Color(0xFF2E2C54))
     ) {
@@ -416,7 +291,7 @@ fun OverallScoreCircular(score: Float, grade: String, duration: Float) {
             Column(modifier = Modifier.weight(1.2f)) {
                 Text(
                     text = "Overall Performance",
-                    color = Color(0xFFA0A5C0),
+                    color = TextSecondary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -425,7 +300,7 @@ fun OverallScoreCircular(score: Float, grade: String, duration: Float) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "Duration: ${String.format("%.1f", duration)}s",
-                    color = Color.Gray,
+                    color = TextSecondary,
                     fontSize = 13.sp
                 )
             }
@@ -436,19 +311,19 @@ fun OverallScoreCircular(score: Float, grade: String, duration: Float) {
             ) {
                 Canvas(modifier = Modifier.size(100.dp)) {
                     drawCircle(
-                        color = Color(0xFF222046),
+                        color = BorderAccent,
                         radius = size.minDimension / 2,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(
+                        style = Stroke(
                             width = 8.dp.toPx(),
                             cap = StrokeCap.Round
                         )
                     )
                     drawArc(
-                        color = Color(0xFF9D4EDD), // Neon purple arc
+                        color = PrimaryButton, // Neon purple arc
                         startAngle = -90f,
                         sweepAngle = (curScore.value / 100f) * 360f,
                         useCenter = false,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(
+                        style = Stroke(
                             width = 8.dp.toPx(),
                             cap = StrokeCap.Round
                         )
@@ -457,13 +332,13 @@ fun OverallScoreCircular(score: Float, grade: String, duration: Float) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "${curScore.value.toInt()}",
-                        color = Color.White,
+                        color = TextPrimary,
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "/100",
-                        color = Color(0xFFA0A5C0),
+                        color = TextSecondary,
                         fontSize = 12.sp
                     )
                 }
@@ -474,17 +349,17 @@ fun OverallScoreCircular(score: Float, grade: String, duration: Float) {
 
 // ─── Radar Chart Card ────────────────────────────────
 @Composable
-fun RadarScoreChart(result: AnalysisResult) {
+fun RadarScoreChart(result: Analysis_data) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF16152B)),
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color(0xFF2E2C54))
+        border = BorderStroke(1.dp, BorderAccent)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 "Score Overview",
-                color = Color.White,
+                color = TextPrimary,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
@@ -582,7 +457,7 @@ fun GradeBadge(grade: String) {
 @Composable
 fun GridMetricCard(
     title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     score: Float,
     feedback: String,
     accentColor: Color
@@ -614,7 +489,7 @@ fun GridMetricCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = title,
-                    color = Color.White,
+                    color = TextPrimary,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
@@ -633,7 +508,7 @@ fun GridMetricCard(
                 )
                 Text(
                     text = "score",
-                    color = Color.Gray,
+                    color = TextSecondary,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(bottom = 2.dp)
                 )
@@ -651,7 +526,7 @@ fun GridMetricCard(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = feedback,
-                color = Color(0xFFA0A5C0),
+                color = TextSecondary,
                 fontSize = 11.sp,
                 lineHeight = 16.sp,
                 maxLines = 3
@@ -680,7 +555,7 @@ fun TranscriptionCard(text: String) {
             ) {
                 Text(
                     "Transcription",
-                    color = Color.White,
+                    color = TextPrimary,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
@@ -694,13 +569,13 @@ fun TranscriptionCard(text: String) {
                     Icon(
                         imageVector = Icons.Default.ContentCopy,
                         contentDescription = "Copy Text",
-                        tint = Color.Gray,
+                        tint = TextSecondary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Text(text, color = Color(0xFFE2E2E9), fontSize = 14.sp, lineHeight = 22.sp)
+            Text(text, color = TextPrimary, fontSize = 14.sp, lineHeight = 22.sp)
         }
     }
 }
@@ -754,19 +629,19 @@ fun EmotionalToneCard(tone: EmotionalTone) {
                 Column {
                     Text(
                         "Voice Tone Profile",
-                        color = Color.Gray,
+                        color = TextSecondary,
                         fontSize = 12.sp
                     )
                     Text(
                         tone.tone,
-                        color = Color.White,
+                        color = TextPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         tone.suggestion,
-                        color = Color(0xFFA0A5C0),
+                        color = TextSecondary,
                         fontSize = 13.sp,
                         lineHeight = 18.sp
                     )
@@ -788,7 +663,7 @@ fun FluencyDetailsGrid(fluency: FluencyDetail) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 "Speech Metrics",
-                color = Color.White,
+                color = TextPrimary,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
@@ -797,11 +672,11 @@ fun FluencyDetailsGrid(fluency: FluencyDetail) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                FluencyStatBox("Pace", "${fluency.wpm.toInt()}", "WPM (Ideal: 110-150)", modifier = Modifier.weight(1f))
+                FluencyStatBox("Pace (WPM)", "${fluency.wpm.toInt()}", "Ideal:110-150", modifier = Modifier.weight(1f))
                 Spacer(modifier = Modifier.width(8.dp))
-                FluencyStatBox("Fillers", "${fluency.filler_count}", "um, uh, like...", modifier = Modifier.weight(1f))
+                FluencyStatBox("Fillers Words", "${fluency.filler_count}", "um, uh, like...", modifier = Modifier.weight(1f))
                 Spacer(modifier = Modifier.width(8.dp))
-                FluencyStatBox("Pauses", "${fluency.pause_count}", "> 0.3s silence", modifier = Modifier.weight(1f))
+                FluencyStatBox("Pauses", "${fluency.pause_count}", "0.3s silence", modifier = Modifier.weight(1f))
             }
         }
     }
@@ -812,15 +687,15 @@ fun FluencyStatBox(label: String, value: String, hint: String, modifier: Modifie
     Box(
         modifier = modifier
             .background(Color(0xFF222046), shape = RoundedCornerShape(12.dp))
-            .border(1.dp, Color(0xFF2E2C54), shape = RoundedCornerShape(12.dp))
+            .border(1.dp, BorderAccent, shape = RoundedCornerShape(12.dp))
             .padding(12.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text(label, color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            Text(label, color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(6.dp))
-            Text(value, color = Color(0xFF00F5D4), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(value, color = VisualizerWaveCyan, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(hint, color = Color.Gray, fontSize = 9.sp, maxLines = 1)
+            Text(hint, color = TextSecondary, fontSize = 9.sp, maxLines = 1)
         }
     }
 }
@@ -828,14 +703,14 @@ fun FluencyStatBox(label: String, value: String, hint: String, modifier: Modifie
 // ─── History List View (No Emoji) ──────────────────────
 @Composable
 fun HistoryListView(
-    history: List<HistoryItem>,
-    onItemClick: (HistoryItem) -> Unit,
-    onDeleteClick: (HistoryItem) -> Unit
+    history: List<HistoryEntity>,
+    onItemClick: (HistoryEntity) -> Unit,
+    onDeleteClick: (HistoryEntity) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(
             "Analysis History",
-            color = Color.White,
+            color = TextPrimary,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold
         )
@@ -847,12 +722,12 @@ fun HistoryListView(
                     Icon(
                         imageVector = Icons.Default.Mic,
                         contentDescription = null,
-                        tint = Color.Gray,
+                        tint = TextSecondary,
                         modifier = Modifier.size(56.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text("No analyses yet", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text("Analyze a recording to see results here", color = Color.Gray, fontSize = 13.sp)
+                    Text("No analyses yet", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("Analyze a recording to see results here", color = TextSecondary, fontSize = 13.sp)
                 }
             }
         } else {
@@ -871,7 +746,7 @@ fun HistoryListView(
 }
 
 @Composable
-fun HistoryItemCard(item: HistoryItem, onClick: () -> Unit, onDelete: () -> Unit) {
+fun HistoryItemCard(item: HistoryEntity, onClick: () -> Unit, onDelete: () -> Unit) {
     val dateStr = remember(item.timestamp) {
         SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()).format(Date(item.timestamp))
     }
@@ -900,14 +775,14 @@ fun HistoryItemCard(item: HistoryItem, onClick: () -> Unit, onDelete: () -> Unit
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(item.fileName.removeSuffix(".m4a"), color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1)
+                Text(item.fileName.removeSuffix(".m4a"), color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(dateStr, color = Color.Gray, fontSize = 12.sp)
+                Text(dateStr, color = TextSecondary, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(item.result.emotional_tone.tone, color = Color(0xFF6C63FF), fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
             IconButton(onClick = onDelete) {
-                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray)
+                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = TextSecondary)
             }
         }
     }
@@ -923,17 +798,17 @@ fun scoreColor(score: Float): Color {
 }
 
 @Composable
-fun ResultsViewWithBack(result: AnalysisResult, onBack: () -> Unit) {
+fun ResultsViewWithBack(result: Analysis_data, onBack: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Analysis Result", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Analysis Result", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
         ResultsView(result)
     }

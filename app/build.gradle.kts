@@ -1,12 +1,13 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp")
 
 }
 
 android {
     namespace = "com.example.voiceanalyzer"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.example.voiceanalyzer"
@@ -54,6 +55,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.ui.tooling.preview)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -76,9 +79,32 @@ dependencies {
 // Gson for JSON parsing
     implementation("com.google.code.gson:gson:2.10.1")
 // Compose animations
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    // Retrofit Gson Converter (handles automatic JSON-to-Object parsing)
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+
     implementation("androidx.compose.animation:animation:1.6.0")
 
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
+    implementation("androidx.core:core-splashscreen:1.0.0")
+    debugImplementation(libs.androidx.ui.tooling)
+
+    val lifecycleVersion = "2.11.0" // Use the latest stable version
+
+    // Core ViewModel library for standard or Multiplatform logic
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
+
+    // REQUIRED if you are using Jetpack Compose (provides the viewModel() composable function)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycleVersion")
+
+    // OPTIONAL extensions for Activities/Fragments (provides the 'by viewModels()' delegate)
+    implementation("androidx.activity:activity-ktx:1.9.0")
+    implementation("androidx.fragment:fragment-ktx:1.8.0")
+
+    val room_version = "2.8.4"
+    implementation("androidx.room:room-runtime:${room_version}")
+    ksp("androidx.room:room-compiler:$room_version")
+    implementation("androidx.room:room-ktx:${room_version}")
 
 }

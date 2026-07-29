@@ -1,7 +1,6 @@
-package com.example.voiceanalyzer
+package com.example.voiceanalyzer.ui.Screens
 
 import android.R
-import android.graphics.Color.blue
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -30,33 +29,42 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.example.voiceanalyzer.Data.Media.AudioFile
+import com.example.voiceanalyzer.ui.theme.MiniPlayer
+import com.example.voiceanalyzer.ViewModel.RecordingViewModel
+import com.example.voiceanalyzer.ui.theme.ActionButton
+import com.example.voiceanalyzer.ui.theme.AppBackground
+import com.example.voiceanalyzer.ui.theme.BorderAccent
+import com.example.voiceanalyzer.ui.theme.PrimaryButton
+import com.example.voiceanalyzer.ui.theme.SurfaceCard
 
 @Composable
 fun RecordingsScreen(
-    playerManager: PlayerManager,
-    repository: AudioRepository,
-    onAnalyzeClick: (String) -> Unit  // ← add this
+    viewModel: RecordingViewModel,
+    onAnalyzeClick: (String) -> Unit
 
 ) {
-    val isPlaying by playerManager.isPlaying.collectAsState()
-    val currentUri by playerManager.currentUri.collectAsState()
-    val playbackState by playerManager.playbackState.collectAsState()
+    val isPlaying by viewModel.isplaying_audio.collectAsState()
+    val currentUri by viewModel.current_uri.collectAsState()
+    val playbackState by viewModel.playbackstate.collectAsState()
+    val recordings by viewModel.recording.collectAsState()
 
-    var recordings by remember { mutableStateOf(listOf<AudioFile>()) }
+
     var recordingToDelete by remember { mutableStateOf<AudioFile?>(null) }
     var recordingToRename by remember { mutableStateOf<AudioFile?>(null) }
     var renameText by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        recordings = repository.fetchSavedRecordings()
+        viewModel.load_recordings()
     }
 
     val selectedFile = recordings.firstOrNull { it.uri == currentUri }
-
+ 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(AppBackground)
                 .padding(16.dp)
         )  {
             Text(
@@ -83,14 +91,14 @@ fun RecordingsScreen(
                 ) {
                     items(recordings) { file ->
                         RecordingRowItem(
-                            audioFile = file,
+                             audioFile = file,
                             isPlaying = currentUri == file.uri && isPlaying,
                             onClick = {
                                 if (currentUri == file.uri) {
-                                    if (isPlaying) playerManager.pause()
-                                    else playerManager.resume()
+                                    if (isPlaying) viewModel.pause_audio()
+                                    else viewModel.resume_audio()
                                 } else {
-                                    playerManager.play(file.uri)
+                                    viewModel.play_audio(file.uri)
                                 }
                             },
                             onDeleteClick = { recordingToDelete = file },
@@ -121,10 +129,10 @@ fun RecordingsScreen(
                     isPlaying = isPlaying,
                     playbackState = playbackState,
                     onPlayPause = {
-                        if (isPlaying) playerManager.pause() else playerManager.resume()
+                        if (isPlaying) viewModel.pause_audio() else viewModel.resume_audio()
                     },
-                    onSeek = { pos -> playerManager.seekTo(pos) },
-                    onClose = { playerManager.stop() }
+                    onSeek = { pos -> viewModel.seekto(pos) },
+                    onClose = { viewModel.stop_audio() }
                 )
             }
         }
@@ -139,9 +147,8 @@ fun RecordingsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     recordingToDelete?.let { file ->
-                        if (currentUri == file.uri) playerManager.stop()
-                        repository.deleteRecording(file)
-                        recordings = repository.fetchSavedRecordings()
+                        if (currentUri == file.uri) viewModel.stop_audio()
+                        viewModel.delete_audio(file)
                     }
                     recordingToDelete = null
                 }) {
@@ -174,8 +181,7 @@ fun RecordingsScreen(
                     recordingToRename?.let { file ->
                         val trimmed = renameText.trim()
                         if (trimmed.isNotEmpty()) {
-                            repository.renameRecording(file, trimmed)
-                            recordings = repository.fetchSavedRecordings()
+                            viewModel.rename_audio(file, trimmed)
                         }
                     }
                     recordingToRename = null
@@ -202,7 +208,7 @@ fun RecordingRowItem(
     onAnalyzeClick: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
-
+ 
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -214,15 +220,15 @@ fun RecordingRowItem(
             // Left border accent line: glows emerald/cyan when playing, otherwise transparent/slate
             .border(
                 width = if (isPlaying) 2.dp else 1.dp,
-                color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.1f),
+                color = if (isPlaying) PrimaryButton else BorderAccent.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(16.dp)
             ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isPlaying)
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                ActionButton
             else
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                SurfaceCard
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -238,14 +244,15 @@ fun RecordingRowItem(
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(
-                            if (isPlaying) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            if (isPlaying) PrimaryButton
+                            else Color(0xFF1D1B36)
                         )
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = if (isPlaying) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                        tint = if (isPlaying) Color.White
+                        else PrimaryButton,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -258,7 +265,7 @@ fun RecordingRowItem(
                         text = audioFile.name.removeSuffix(".m4a"), // Remove extension suffix for clean look
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color =  Color(0xFFF1EFF7),
                         maxLines = 1
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -269,13 +276,13 @@ fun RecordingRowItem(
                         Text(
                             text = formatTime(audioFile.durationMs),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color(0xFF8E8B9E)
                         )
                         // File Size Indicator
                         Text(
                             text = formatSize(audioFile.sizeInBytes),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            color  = Color(0xFF8E8B9E).copy(alpha = 0.7f)
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         // Recording Date
@@ -322,16 +329,16 @@ fun RecordingRowItem(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Analyze", color = Color(0xFF6C63FF)) },
+                    text = { Text("Analyze", color = PrimaryButton) },
                     onClick = {
                         showMenu = false
                         onAnalyzeClick()
                     },
                     leadingIcon = {
                         Icon(
-                            painter = painterResource(id = android.R.drawable.ic_menu_info_details),
+                            painter = painterResource(id = R.drawable.ic_menu_info_details),
                             contentDescription = "Analyze",
-                            tint = Color(0xFF6C63FF)
+                            tint = PrimaryButton
                         )
                     }
                 )

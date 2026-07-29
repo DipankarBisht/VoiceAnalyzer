@@ -1,10 +1,9 @@
-package com.example.voiceanalyzer
+package com.example.voiceanalyzer.Data.Media
 
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.provider.MediaStore
-import java.io.File
 
 class AudioRepository(private val context: Context) {
 
@@ -19,7 +18,7 @@ class AudioRepository(private val context: Context) {
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.SIZE,
             MediaStore.Audio.Media.DATE_ADDED,
-            MediaStore.Audio.Media.DATA        // ← add this (actual file path)
+            MediaStore.Audio.Media.DATA
         )
 
         val selection = "${MediaStore.Audio.Media.RELATIVE_PATH} LIKE ?"
@@ -38,7 +37,7 @@ class AudioRepository(private val context: Context) {
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val sizeColumn     = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
             val dateColumn     = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
-            val dataColumn     = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA) // ← add this
+            val dataColumn     = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
 
             while (cursor.moveToNext()) {
                 val id       = cursor.getLong(idColumn)
@@ -46,18 +45,18 @@ class AudioRepository(private val context: Context) {
                 val duration = cursor.getLong(durationColumn)
                 val size     = cursor.getLong(sizeColumn)
                 val date     = cursor.getLong(dateColumn) * 1000
-                val filePath = cursor.getString(dataColumn) ?: "" // ← add this
+                val filePath = cursor.getString(dataColumn) ?: ""
 
                 val contentUri = ContentUris.withAppendedId(collection, id)
 
                 audioList.add(
                     AudioFile(
-                        uri         = contentUri,
-                        name        = name,
-                        durationMs  = duration,
+                        uri = contentUri,
+                        name = name,
+                        durationMs = duration,
                         sizeInBytes = size,
-                        dateAdded   = date,
-                        filePath    = filePath  // ← add this
+                        dateAdded = date,
+                        filePath = filePath  // ← add this
                     )
                 )
             }
